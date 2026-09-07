@@ -1,4 +1,4 @@
-# 📊 Survival Analysis for Data Scientists (2AMS11 - TU/e)
+# 📊 Research Topics in Data Mining (2AMM20 - TU/e)
 
 Welcome to the repository for **2AMS11 Survival Analysis** at Eindhoven University of Technology (TU/e).
 
