@@ -17,7 +17,7 @@ There will be three assignments for this course.
 | :--- | :--- | :--- |
 | **Assignment 1** | Paper Review Phase | [Download Paper Review Phase](#[link-to-assignment-1]) |
 | **Assignment 2** | Paper Set Review Phase | [Download Paper Set Review Phase](#[link-to-assignment-2]) |
-| **Assignment 3** | Research Project Phase | [Download Research Project Phase](#[link-to-assignment-3]) — code in [`research_project/`](research_project/) |
+| **Assignment 3** | Research Project Phase | [Download Research Project Phase](#[link-to-assignment-3]), code in [`research_project/`](research_project/) |
 
 ### 📊 Evaluation
 * **Research Project Phase Evaluation:** You can download the official evaluation form for the final phase here: [Download Evaluation Form](#[link-to-evaluation-form])
@@ -31,18 +31,39 @@ We combine **RECO** (abstraction-guided policy recovery, Ponnambalam et al., ICA
 **Research question** (to be reframed around the method, as suggested by the supervisor): *Does value-aware recovery improve on RECO without more supervisor queries, and under which conditions (data quality, data quantity, environment size, abstraction error)?*
 
 ### Method in short
-* Value iteration in RECO's abstract model with the true task rewards: recovery towards the highest-value known state + state stitching through projected moves.
-* Consistency check on abstract transitions; **execution rule**: a projected move whose outcome differs from the prediction is dropped for the rest of the episode and the agent replans (free-space assumption, as in D* Lite).
-* Fallback: with no valid plan the agent acts like RECO, so with a correct abstraction it is never worse than RECO and never queries more (proposition, checked on every start state).
+
+We plan on one graph built from the batch:
+* **Observed transitions**: the logged pairs (s, a) with their successor and reward.
+* **Projected transitions**: RECO's abstraction keeps only the taxi coordinates. A move logged at a cell is copied to every state with the same coordinates, whatever the passenger location or destination. If the same move at the same cell was logged with different outcomes, it is inconsistent and is not projected. Pick-up and drop-off are never projected.
+
+At each step the agent (`Ours` in `src/agents.py`):
+1. runs value iteration with the true task rewards over observed and projected transitions. A state is *valid* if a delivery is reachable from it. Inside the data this lets the agent jump between trajectories (state stitching); off the data it heads for the goal instead of only returning to the data (value-aware recovery);
+2. if the state is not valid, acts exactly like RECO: it imitates the data on logged states, follows RECO's recovery off them, and queries the supervisor only when RECO would;
+3. applies the **execution rule**: if a projected move gives a different outcome than predicted, that pair (s, a) is dropped for the rest of the episode and the agent replans (free-space assumption, as in D* Lite).
+
+POR in a tabular, deterministic setting: its in-sample value with expectile τ → 1 is value iteration over the logged transitions. Our POR-style baseline (`In-data planning`) is exactly that, with no neural network.
+
+With a correct abstraction the agent never queries more than RECO and its return is never lower (proposition, checked by a test on every start state). When every logged state can reach a delivery, a valid plan exists exactly where RECO can recover, so both ask in the same states: the gain is in return, not in fewer queries.
+
+Planner variants (`src/model.py`, class `Planner`):
+
+| Variant | Inside the data | Off the data | Objective | Used by |
+| --- | --- | --- | --- | --- |
+| `in_data` | observed | none (query) | task reward | In-data planning; RECO-greedy inside the data |
+| `reco` | not planned (imitation) | projected | reach the data | RECO; RECO-greedy off the data |
+| `no_stitch` | observed | projected | task reward | Ours w/o stitching |
+| `ours` | observed + projected | projected | task reward | Ours |
 
 ### Repository layout
 
 | Path | Content |
 | --- | --- |
 | [`research_project/src/`](research_project/src/) | environments (exact Taxi-v3, generated taxis with conditional doors ρ), datasets, abstract model and planner, agents, evaluation |
+| [`research_project/src/doorkey.py`](research_project/src/doorkey.py), [`experiments/run_doorkey.py`](research_project/experiments/run_doorkey.py) | DoorKey-style benchmark: collect a key, unlock a door, reach the goal |
 | [`research_project/experiments/`](research_project/experiments/) | `run_reproduction.py` (RECO reproduction), `run_main.py` (ρ × dataset × \|D\| × seeds) |
-| [`research_project/tests/`](research_project/tests/) | Gym equivalence, map connectivity, the proposition, the execution rule |
-| [`research_project/results/`](research_project/results/) | CSV results used for the first meeting |
+| [`research_project/tests/`](research_project/tests/) | Gym equivalence, map connectivity, the proposition, the execution rule, analysis, DoorKey (21 tests) |
+| [`research_project/notebooks/`](research_project/notebooks/) | `analyze_results.py` (figures, paired bootstrap tables, `week2_notes.md` for the results section), `doorkey_benchmark.ipynb` |
+| [`research_project/results/`](research_project/results/) | CSV results of all runs (reproduction, taxi M, taxi L, DoorKey smoke run) |
 
 Quick start (Python 3.10+, from `research_project/`):
 
@@ -59,11 +80,14 @@ Scripts never overwrite an existing results file: always pass a new `--out`.
 
 | Experiment | File | Main finding |
 | --- | --- | --- |
-| RECO reproduction: Taxi-v3, expert data, \|D\| = 10–150, 30 seeds | `results/reproduction_30seeds.csv` | Same pattern as RECO's paper (queries drop to 0%); our method has the same queries and never lower return (150/150 seeds) |
-| Taxi M (10×10, 2,000 states), 3 datasets × ρ ∈ {0, 0.25, 0.5} × \|D\| ∈ {50, 150}, 30 seeds | `results/main_M.csv` | Correct abstraction: beats RECO-greedy on 30/30 seeds (+0.5 to +1.2 on good data, very large on poor data). ρ = 0.5 on good data: about −1 |
-| Taxi L (20×20, 28,800 states), 2 datasets × ρ ∈ {0, 0.5} × \|D\| ∈ {150, 400}, 10 seeds, 1,000 start states | `results/main_L.csv` | Correct abstraction: +2.6 / +3.7, near optimal, 10/10 seeds; ρ = 0.5: statistical tie, stitching costs 3–4 and slightly more queries |
+| RECO reproduction: Taxi-v3, expert data, \|D\| = 10 to 150, 30 seeds | `results/reproduction_30seeds.csv` | Same query curve as RECO's paper (down to 0%); our method has the same queries and never a lower return (150/150 seeds) |
+| Taxi M (10×10, 2,000 states), 3 datasets × ρ ∈ {0, 0.25, 0.5} × \|D\| ∈ {50, 150}, 30 seeds | `results/main_M.csv` | ρ = 0: beats RECO-greedy on 30/30 seeds with the same queries (drivers +0.65 / +1.20, noisy expert +0.47, random mix +4.8 to +227). ρ = 0.25: interval includes 0. ρ = 0.5: worse than RECO-greedy (drivers −1.15 / −1.45 on the 27 feasible layouts) |
+| Taxi L (20×20, 28,800 states), drivers × ρ ∈ {0, 0.5} × \|D\| ∈ {150, 400}, 10 seeds, 1,000 start states | `results/main_L.csv` | ρ = 0: +3.7 / +2.6, 10/10 seeds, near optimal. ρ = 0.5: −5.0 / −7.0 on the 7 feasible layouts; on all 10 layouts about −0.5 / −1.9 with an interval that includes 0 |
+| DoorKey smoke run: 5×5, 3 seeds, 5 noisy-expert trajectories | `results/doorkey_smoke.csv` | Validation only. Correct abstraction: tie with RECO-greedy (the model is never used). Abstraction that ignores the door: Ours is worse (return 5.6 vs 10.8, 0.80 vs 0.50 queries per episode) |
 
-Takeaways: the gain grows with poorer data and larger maps; with a wrong abstraction stitching loses its advantage; the execution rule prevents a collapse (−35 to −120 without it). Baselines with a high return but 55–90% of episodes with a query (in-data planning) must be compared with a query cost. Note: the prototype numbers in our first email were inflated by a data bug (drivers could get stuck), fixed in this code.
+**Infeasible layouts.** At ρ = 0.5 some random layouts cut a passenger stop off from an empty taxi, so even the optimal supervisor fails from many start states (3 of 30 layouts on M, 3 of 10 on L). The paper excludes them; the results should be reported both with and without them.
+
+**Takeaways.** The gain over RECO-greedy grows with poorer data and larger maps, but it needs a correct abstraction: at ρ = 0.5 stitching makes Ours worse than RECO-greedy. The execution rule prevents a collapse (without it, return falls to about −41 at ρ = 0.25 and −67 at ρ = 0.5 on taxi M, driver data). Stitching never reduced supervisor queries. In-data planning matches our return but queries in about 56% of episodes, so it must be compared with a query cost. The prototype numbers in our first email were inflated by a data bug (drivers could get stuck), fixed in this code.
 
 ### Team
 
@@ -73,26 +97,28 @@ Takeaways: the gain grows with poorer data and larger maps; with a wrong abstrac
 | Simone | Code: algorithms (model, planner, agents) |
 | Francesco | Writing: framing and literature |
 | Wojciech | Writing: method and theory |
-| Randy | Writing: experiments and analysis |
+| Randy (Hongda) | Writing: experiments and analysis |
 
 ### Roadmap
 
 Done:
-- [x] Clean, tested codebase (6 tests; Taxi-v3 verified identical to Gymnasium's Taxi)
+- [x] Clean, tested codebase (Taxi-v3 verified identical to Gymnasium's Taxi)
 - [x] RECO reproduction with 30 seeds
 - [x] Main experiments on taxi M (30 seeds) and taxi L (10 seeds)
 - [x] Fix of the driver data bug (drivers can no longer get stuck)
+- [x] Analysis notebook: return vs queries frontier, bootstrap confidence intervals, step breakdown (data / model / query)
+- [x] Research question reframed around the method (hypothesis in the paper)
+- [x] DoorKey benchmark: environment, tests, smoke run
+- [x] Report draft: method section aligned with the code (12 October)
 
 Next steps and possible future developments:
-- [ ] Correct the prototype numbers sent to the supervisor (first meeting)
-- [ ] Reframe the research question around the method ("does it improve, under which conditions")
-- [ ] Rewrite `main.tex` on Overleaf following the plan (introduction, related work, methodology) and link Overleaf to this repository
-- [ ] Abstract execution rule: after a failed projected move, distrust that abstract move for the whole episode in every state (aims at the loss at ρ = 0.5)
+- [ ] Correct the prototype numbers sent to the supervisor
+- [ ] Abstract execution rule: after a failed projected move, distrust that abstract move for the whole episode in every state (aims at the loss at ρ = 0.5 and at DoorKey with the wrong abstraction)
 - [ ] Rerun taxi M with the final code (value-iteration tolerance changed from 1e-9 to 1e-6)
+- [ ] Report results with and without the infeasible layouts at ρ = 0.5
+- [ ] Report: add figures, rewrite `supplement.tex`, mention DoorKey and future work
+- [ ] Link Overleaf to this repository
+- [ ] Larger DoorKey run (bigger maps, more trajectories and seeds)
 - [ ] Taxi L with 30 seeds, noisy-expert data and more values of \|D\|
-- [ ] Analysis notebook (new `research_project/notebooks/` folder): return vs queries frontier, bootstrap confidence intervals, step breakdown (data / model / query)
 - [ ] Close the gap with Factored Batch RL on poor data (generalise pick-up / drop-off)
-- [ ] SPIBB baseline (optional)
-- [ ] Dynamic RECO with several candidate abstractions (optional)
-- [ ] Stochastic dynamics / slippery-taxi robustness test (optional; the proposition assumes deterministic dynamics)
-- [ ] Reproduce POR's toy grid example as a qualitative check (optional)
+- [ ] Optional: SPIBB baseline, dynamic RECO with several abstractions, stochastic dynamics (the proposition assumes deterministic dynamics), POR's toy grid example
