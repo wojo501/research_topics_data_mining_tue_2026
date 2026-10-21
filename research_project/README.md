@@ -12,7 +12,7 @@ Code for the 2AMM20 project. Tabular, deterministic, numpy only (no neural netwo
 | `src/agents.py` | `Imitation`, `BC`, `RECO`, `RECOGreedy`, `InData` (POR-style), `Ours` (+ ablations, + factored reference). Interface: `reset()`, `act(s)` -> action or `QUERY`, `observe(s, a, s_next)` |
 | `src/evaluate.py` | Evaluation over every start state; supervisor = optimal policy; return, discounted return, queries, step breakdown |
 | `experiments/` | `run_reproduction.py` (RECO Fig. 4 setting), `run_main.py` (rho x dataset x \|D\| x seeds, parallel with joblib) |
-| `tests/` | Gym equivalence, map connectivity, CSV round trip, the "never worse than RECO" proposition, the execution rule |
+| `tests/` | Gym equivalence, map connectivity, CSV round trip, a "never worse than RECO-greedy" check on one configuration (rho = 0), the execution rule |
 | `results/` | CSV outputs (one row per agent x configuration) |
 
 

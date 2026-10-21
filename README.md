@@ -41,9 +41,9 @@ At each step the agent (`Ours` in `src/agents.py`):
 2. if the state is not valid, acts exactly like RECO: it imitates the data on logged states, follows RECO's recovery off them, and queries the supervisor only when RECO would;
 3. applies the **execution rule**: if a projected move gives a different outcome than predicted, that pair (s, a) is dropped for the rest of the episode and the agent replans (free-space assumption, as in D* Lite).
 
-POR in a tabular, deterministic setting: its in-sample value with expectile τ → 1 is value iteration over the logged transitions. Our POR-style baseline (`In-data planning`) is exactly that, with no neural network.
+POR in a tabular, deterministic setting: with expectile τ → 1 its in-sample value approaches value iteration over the logged transitions. Our `In-data planning` baseline is inspired by POR and plans on those transitions directly; it has no guide policy, executor or expectile regression, and we do not claim equivalence with POR.
 
-With a correct abstraction the agent never queries more than RECO and its return is never lower (proposition, checked by a test on every start state). When every logged state can reach a delivery, a valid plan exists exactly where RECO can recover, so both ask in the same states: the gain is in return, not in fewer queries.
+Sharing RECO's recovery rule as a fallback does not guarantee that Ours asks for fewer or equal queries, or that its return is never lower: the two agents can visit different states and drop different projected moves. In our experiments with a correct abstraction (ρ = 0) Ours and RECO-greedy have identical query rates on every seed and Ours has the higher return; with conditional doors Ours can query more and lose return. `tests/test_basic.py::test_proposition_never_worse_than_reco` checks one configuration (Taxi M, ρ = 0, one seed), not a general theorem.
 
 Planner variants (`src/model.py`, class `Planner`):
 
