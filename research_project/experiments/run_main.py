@@ -25,15 +25,16 @@ if __name__ == "__main__":
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
+    path = args.out or f"results/main_{args.size}.csv"
+    if os.path.exists(path):
+        raise SystemExit(f"{path} already exists: choose another --out (results are never overwritten)")
+
     def one(rho, ds, n, seed):
-        env = Taxi.generated(rho=rho, seed=seed, **SIZES[args.size])  # conditional doors drawn per seed
+        env = Taxi.generated(rho=rho, seed=seed, **SIZES[args.size])  # conditional doors rejection-sampled per seed
         return run_config(env, f"taxi-{args.size}", rho, ds, n, seed, args.agents, eval_starts=args.eval_starts)
 
     jobs = [(r, d, n, s) for r in args.rhos for d in args.datasets for n in args.n_traj for s in range(args.seeds)]
     out = Parallel(n_jobs=args.jobs, verbose=10)(delayed(one)(*j) for j in jobs)
-    path = args.out or f"results/main_{args.size}.csv"
-    if os.path.exists(path):
-        raise SystemExit(f"{path} already exists: choose another --out (results are never overwritten)")
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     df = save([r for rows in out for r in rows], path)
     print(df.groupby(["dataset", "rho", "agent"])[["ret", "pct_ep_with_query"]].mean().round(2).to_string())

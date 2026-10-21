@@ -64,3 +64,24 @@ With door state ignored, episodes needing help also increase from **36.67% to
 Consequently, this small experiment provides **no evidence of an advantage for
 our method**. See the [implementation report](doorkey_implementation_report.md)
 for the comparison and the distinction between request counts and percentages.
+
+## Solvable Taxi layouts
+
+Generated Taxi maps now rejection-sample conditional-door subsets until every
+initial state can complete pickup and delivery within the 200-step horizon.
+The number of conditional doors remains `round(rho * len(doors))`, and retries
+advance the same seeded RNG. Every method receives the same accepted map for
+that seed. This conditions the map distribution on solvability; it does not
+filter evaluation episodes or promise successful learned policies.
+
+Use [`notebooks/taxi_solvable_rerun.ipynb`](notebooks/taxi_solvable_rerun.ipynb)
+for the regression tests, complete M/L rerun configuration, and seed-coverage
+checks. New outputs are `results/main_M_solvable.csv` and
+`results/main_L_solvable.csv`; the original files are retained as historical data.
+The analysis script and results notebook use the new outputs.
+
+`layout_attempts` records the number of sampled subsets, `max_optimal_steps`
+records the worst shortest delivery length across all starts, and
+`require_solvable` records the generation protocol. To reproduce historical
+first draws explicitly, use `Taxi.generated(..., require_solvable=False)`.
+A 10,000-draw limit raises an error instead of silently dropping a seed.

@@ -106,8 +106,8 @@ def with_query_cost(ret, queries_per_ep, cost):
 def load_results(results_dir=RESULTS):
     files = {
         "reproduction": results_dir / "reproduction_30seeds.csv",
-        "taxi_M": results_dir / "main_M.csv",
-        "taxi_L": results_dir / "main_L.csv",
+        "taxi_M": results_dir / "main_M_solvable.csv",
+        "taxi_L": results_dir / "main_L_solvable.csv",
     }
     frames = {}
     for name, path in files.items():

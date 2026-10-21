@@ -1,0 +1,50 @@
+[Parallel(n_jobs=2)]: Using backend LokyBackend with 2 concurrent workers.
+[Parallel(n_jobs=2)]: Done   1 tasks      | elapsed:   27.6s
+[Parallel(n_jobs=2)]: Done   4 tasks      | elapsed:   53.5s
+[Parallel(n_jobs=2)]: Done   9 tasks      | elapsed:  2.1min
+[Parallel(n_jobs=2)]: Done  14 tasks      | elapsed:  3.0min
+[Parallel(n_jobs=2)]: Done  21 tasks      | elapsed:  5.2min
+[Parallel(n_jobs=2)]: Done  28 tasks      | elapsed:  7.5min
+[Parallel(n_jobs=2)]: Done  37 tasks      | elapsed: 11.7min
+[Parallel(n_jobs=2)]: Done  46 tasks      | elapsed: 17.7min
+[Parallel(n_jobs=2)]: Done  57 tasks      | elapsed: 32.0min
+[Parallel(n_jobs=2)]: Done  68 tasks      | elapsed: 40.2min
+[Parallel(n_jobs=2)]: Done  80 out of  80 | elapsed: 44.3min finished
+                                                ret  pct_ep_with_query
+dataset    rho agent
+drivers    0.0 BC                           -249.79              85.68
+               Factored Batch RL             -19.60               3.68
+               Imitation                     -40.27              85.68
+               In-data planning (POR-style)  -20.48              85.68
+               Ours                          -19.57               6.98
+               Ours w/o execution rule       -19.57               6.98
+               Ours w/o stitching            -20.66               6.98
+               RECO                          -44.50               6.98
+               RECO-greedy                   -22.73               6.98
+           0.5 BC                           -253.57              85.15
+               Factored Batch RL             -24.62              17.33
+               Imitation                     -43.50              85.15
+               In-data planning (POR-style)  -24.36              85.15
+               Ours                          -33.28               9.70
+               Ours w/o execution rule      -122.16               6.52
+               Ours w/o stitching            -29.18               8.44
+               RECO                          -47.60               7.72
+               RECO-greedy                   -27.60               7.72
+random_mix 0.0 BC                           -804.13              69.52
+               Factored Batch RL             -19.11               0.00
+               Imitation                    -404.41              71.60
+               In-data planning (POR-style) -340.66              69.52
+               Ours                         -134.45               3.46
+               Ours w/o execution rule      -134.45               3.46
+               Ours w/o stitching           -204.15               3.46
+               RECO                         -523.34               3.46
+               RECO-greedy                  -516.23               3.46
+           0.5 BC                           -766.53              71.72
+               Factored Batch RL             -23.71               0.00
+               Imitation                    -390.60              73.20
+               In-data planning (POR-style) -350.24              71.72
+               Ours                         -133.09               3.46
+               Ours w/o execution rule      -133.98               3.46
+               Ours w/o stitching           -233.19               3.46
+               RECO                         -482.69               3.46
+               RECO-greedy                  -509.76               3.46

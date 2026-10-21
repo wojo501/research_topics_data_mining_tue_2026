@@ -46,6 +46,9 @@ def run_config(env, env_name, rho, dataset, n_traj, seed, agent_names=ALL_AGENTS
         reps = reps_stochastic if ag.name in ("Imitation", "RECO") else 1
         res = evaluate(env, ag, supervisor, reps=reps, starts=starts)
         rows.append(dict(env=env_name, rho=rho, dataset=dataset, n_traj=n_traj, seed=seed, agent=ag.name,
+                         layout_attempts=getattr(env, "layout_attempts", 1),
+                         max_optimal_steps=getattr(env, "max_optimal_steps", None),
+                         require_solvable=getattr(env, "require_solvable", False),
                          optimal_ret=opt, data_pct_delivered=data_mod.pct_delivered(ds), n_SD=len(model.SD), n_inconsistent=len(model.inconsistent), n_eval_starts=len(starts), **res))
     for r in rows:
         r["config_seconds"] = time.time() - t0

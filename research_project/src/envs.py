@@ -10,6 +10,8 @@ State encoding and actions follow Gym Taxi-v3, so state ids are interchangeable 
 "in the taxi". Actions: 0 south, 1 north, 2 east, 3 west, 4 pick-up, 5 drop-off.
 All dynamics are deterministic.
 """
+from collections import deque
+
 import numpy as np
 
 GAMMA = 0.99
@@ -20,6 +22,38 @@ N_ACTIONS = 6
 
 def _edge(a, b):
     return frozenset((a, b))
+
+
+def _layout_max_steps(n, stops, blocked, conditional):
+    """Worst shortest delivery length over all starts, or None if disconnected.
+
+    Empty taxis must reach every stop; loaded taxis may use conditional doors.
+    Distances are exact on this undirected grid. Add pickup and drop-off actions.
+    This is a generator check, never information passed to a learned model.
+    """
+    def distances(start, walls):
+        distance, queue = {start: 0}, deque([start])
+        while queue:
+            row, col = queue.popleft()
+            for dr, dc in MOVES:
+                nb = row + dr, col + dc
+                if (0 <= nb[0] < n and 0 <= nb[1] < n and nb not in distance
+                        and _edge((row, col), nb) not in walls):
+                    distance[nb] = distance[row, col] + 1
+                    queue.append(nb)
+        return distance
+
+    worst = 0
+    for pickup in stops:
+        empty = distances(pickup, set(blocked) | set(conditional))
+        if len(empty) != n * n:
+            return None
+        loaded = distances(pickup, blocked)
+        if any(drop not in loaded for drop in stops):
+            return None
+        worst = max(worst, max(empty.values()) +
+                    max(loaded[drop] for drop in stops if drop != pickup) + 2)
+    return worst
 
 
 class Taxi:
@@ -44,9 +78,20 @@ class Taxi:
         return cls(5, [(0, 0), (0, 4), (4, 0), (4, 3)], blocked)
 
     @classmethod
-    def generated(cls, n=10, rooms=2, n_stops=4, rho=0.0, seed=0):
+    def generated(cls, n=10, rooms=2, n_stops=4, rho=0.0, seed=0,
+                  require_solvable=True, max_layout_attempts=10_000):
         """n x n grid split into rooms x rooms rooms; two doors per wall segment.
-        M = generated(10, 2, 4) -> 2,000 states; L = generated(20, 3, 8) -> 28,800 states."""
+        M = generated(10, 2, 4) -> 2,000 states; L = generated(20, 3, 8) -> 28,800 states.
+
+        Reject conditional-door draws until every start can finish within MAX_STEPS.
+        Each retry uses the same seeded RNG and exactly round(rho * number_of_doors)
+        conditional doors. require_solvable=False reproduces historical first draws.
+        A finite attempt limit raises an error; seeds are never silently skipped.
+        """
+        if not 0 <= rho <= 1:
+            raise ValueError("rho must be between 0 and 1")
+        if max_layout_attempts < 1:
+            raise ValueError("max_layout_attempts must be positive")
         cuts = [round(k * n / rooms) for k in range(1, rooms)]
         bounds = [0] + cuts + [n]
         blocked, doors, segments = set(), [], []
@@ -67,8 +112,19 @@ class Taxi:
             raise ValueError("n_stops must be 4 or 8")
         rng = np.random.default_rng(seed)
         k = int(round(rho * len(doors)))
-        cond = [doors[i] for i in rng.choice(len(doors), k, replace=False)] if k else []
-        return cls(n, stops, blocked, doors, cond, segments)
+        for attempt in range(1, max_layout_attempts + 1):
+            cond = [doors[i] for i in rng.choice(len(doors), k, replace=False)] if k else []
+            worst = _layout_max_steps(n, stops, blocked, cond)
+            if not require_solvable or (worst is not None and worst <= MAX_STEPS):
+                env = cls(n, stops, blocked, doors, cond, segments)
+                env.layout_attempts = attempt
+                env.max_optimal_steps = worst
+                env.require_solvable = require_solvable
+                return env
+            if k == 0 or k == len(doors):
+                break  # No alternative conditional-door subset exists.
+        raise ValueError(f"No solvable layout for seed={seed}, rho={rho} "
+                         f"after {attempt} draws; no seed was skipped")
 
     # ----- encoding -------------------------------------------------------------------------
     def enc(self, r, c, p, d):

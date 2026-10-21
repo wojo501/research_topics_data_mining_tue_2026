@@ -61,7 +61,7 @@ Planner variants (`src/model.py`, class `Planner`):
 | [`research_project/src/`](research_project/src/) | environments (exact Taxi-v3, generated taxis with conditional doors ρ), datasets, abstract model and planner, agents, evaluation |
 | [`research_project/src/doorkey.py`](research_project/src/doorkey.py), [`experiments/run_doorkey.py`](research_project/experiments/run_doorkey.py) | DoorKey-style benchmark: collect a key, unlock a door, reach the goal |
 | [`research_project/experiments/`](research_project/experiments/) | `run_reproduction.py` (RECO reproduction), `run_main.py` (ρ × dataset × \|D\| × seeds) |
-| [`research_project/tests/`](research_project/tests/) | Gym equivalence, map connectivity, the proposition, the execution rule, analysis, DoorKey (21 tests) |
+| [`research_project/tests/`](research_project/tests/) | Gym equivalence, map connectivity, the proposition, the execution rule, analysis, DoorKey, solvable layouts (26 tests) |
 | [`research_project/notebooks/`](research_project/notebooks/) | `analyze_results.py` (figures, paired bootstrap tables, `week2_notes.md` for the results section), `doorkey_benchmark.ipynb` |
 | [`research_project/results/`](research_project/results/) | CSV results of all runs (reproduction, taxi M, taxi L, DoorKey smoke run) |
 
@@ -81,13 +81,13 @@ Scripts never overwrite an existing results file: always pass a new `--out`.
 | Experiment | File | Main finding |
 | --- | --- | --- |
 | RECO reproduction: Taxi-v3, expert data, \|D\| = 10 to 150, 30 seeds | `results/reproduction_30seeds.csv` | Same query curve as RECO's paper (down to 0%); our method has the same queries and never a lower return (150/150 seeds) |
-| Taxi M (10×10, 2,000 states), 3 datasets × ρ ∈ {0, 0.25, 0.5} × \|D\| ∈ {50, 150}, 30 seeds | `results/main_M.csv` | ρ = 0: beats RECO-greedy on 30/30 seeds with the same queries (drivers +0.65 / +1.20, noisy expert +0.47, random mix +4.8 to +227). ρ = 0.25: interval includes 0. ρ = 0.5: worse than RECO-greedy (drivers −1.15 / −1.45 on the 27 feasible layouts) |
-| Taxi L (20×20, 28,800 states), drivers × ρ ∈ {0, 0.5} × \|D\| ∈ {150, 400}, 10 seeds, 1,000 start states | `results/main_L.csv` | ρ = 0: +3.7 / +2.6, 10/10 seeds, near optimal. ρ = 0.5: −5.0 / −7.0 on the 7 feasible layouts; on all 10 layouts about −0.5 / −1.9 with an interval that includes 0 |
+| Taxi M (10×10, 2,000 states), 3 datasets × ρ ∈ {0, 0.25, 0.5} × \|D\| ∈ {50, 150}, 30 seeds | `results/main_M_solvable.csv` | All nine methods have all 30 seeds in every condition. Driver return difference, Ours minus RECO-greedy: ρ = 0: +1.20 / +0.65; ρ = 0.5: -1.45 / -1.22 (50 / 150 trajectories). |
+| Taxi L (20×20, 28,800 states), drivers/random_mix × ρ ∈ {0, 0.5} × \|D\| ∈ {150, 400}, 10 seeds, 1,000 start states | `results/main_L_solvable.csv` | All nine methods have all 10 seeds in every condition. Driver return difference: ρ = 0: +3.71 / +2.61; ρ = 0.5: -4.70 / -6.65 (150 / 400 trajectories). |
 | DoorKey smoke run: 5×5, 3 seeds, 5 noisy-expert trajectories | `results/doorkey_smoke.csv` | Validation only. Correct abstraction: tie with RECO-greedy (the model is never used). Abstraction that ignores the door: Ours is worse (return 5.6 vs 10.8, 0.80 vs 0.50 queries per episode) |
 
-**Infeasible layouts.** At ρ = 0.5 some random layouts cut a passenger stop off from an empty taxi, so even the optimal supervisor fails from many start states (3 of 30 layouts on M, 3 of 10 on L). The paper excludes them; the results should be reported both with and without them.
+**Layout protocol.** Conditional-door subsets are rejection-sampled with a fixed seed and fixed door count until every initial state can complete pickup and delivery within 200 steps. All methods use the same accepted layouts: no seeds are excluded. This conditions the map distribution on solvability. The original `main_M.csv` and `main_L.csv` are retained as historical results; current analyses use the `_solvable.csv` reruns. See the [rerun notebook](research_project/notebooks/taxi_solvable_rerun.ipynb) and [updated results notes](research_project/notebooks/week2_notes.md).
 
-**Takeaways.** The gain over RECO-greedy grows with poorer data and larger maps, but it needs a correct abstraction: at ρ = 0.5 stitching makes Ours worse than RECO-greedy. The execution rule prevents a collapse (without it, return falls to about −41 at ρ = 0.25 and −67 at ρ = 0.5 on taxi M, driver data). Stitching never reduced supervisor queries. In-data planning matches our return but queries in about 56% of episodes, so it must be compared with a query cost. The prototype numbers in our first email were inflated by a data bug (drivers could get stuck), fixed in this code.
+**Takeaways.** Compare the updated paired estimates and confidence intervals in `research_project/notebooks/week2_notes.md`. A solvable environment does not imply that every learned policy succeeds or asks less often. Return must be assessed together with supervisor use; all current comparisons retain every seed. The prototype numbers in the first email were inflated by a driver-data bug and should not be reused.
 
 ### Team
 
@@ -114,8 +114,8 @@ Done:
 Next steps and possible future developments:
 - [ ] Correct the prototype numbers sent to the supervisor
 - [ ] Abstract execution rule: after a failed projected move, distrust that abstract move for the whole episode in every state (aims at the loss at ρ = 0.5 and at DoorKey with the wrong abstraction)
-- [ ] Rerun taxi M with the final code (value-iteration tolerance changed from 1e-9 to 1e-6)
-- [ ] Report results with and without the infeasible layouts at ρ = 0.5
+- [x] Rerun Taxi M and L with the current 1e-6 tolerance and solvable layouts (30 / 10 seeds)
+- [x] Rejection-sample conditional doors and report all seeds without post-hoc layout exclusions
 - [ ] Report: add figures, rewrite `supplement.tex`, mention DoorKey and future work
 - [ ] Link Overleaf to this repository
 - [ ] Larger DoorKey run (bigger maps, more trajectories and seeds)
