@@ -62,7 +62,7 @@ Planner variants (`src/model.py`, class `Planner`):
 | [`research_project/src/doorkey.py`](research_project/src/doorkey.py), [`experiments/run_doorkey.py`](research_project/experiments/run_doorkey.py) | DoorKey-style benchmark: collect a key, unlock a door, reach the goal |
 | [`research_project/experiments/`](research_project/experiments/) | `run_reproduction.py` (RECO reproduction), `run_main.py` (ρ × dataset × \|D\| × seeds) |
 | [`research_project/tests/`](research_project/tests/) | Gym equivalence, map connectivity, the proposition, the execution rule, analysis, DoorKey, solvable layouts (26 tests) |
-| [`research_project/notebooks/`](research_project/notebooks/) | `analyze_results.py` (figures, paired bootstrap tables, `week2_notes.md` for the results section), `doorkey_benchmark.ipynb` |
+| [`research_project/notebooks/`](research_project/notebooks/) | `analyze_results.py` (figures, paired bootstrap tables, `week2_notes.md` for the results section), `make_report_figures.py` (the report figures `return_diff_vs_rho.pdf` and `query_delivery_M.pdf`), `doorkey_benchmark.ipynb` |
 | [`research_project/results/`](research_project/results/) | CSV results of all runs (reproduction, taxi M, taxi L, DoorKey smoke run) |
 
 Quick start (Python 3.10+, from `research_project/`):
@@ -72,7 +72,10 @@ pip install -r requirements.txt
 python -m pytest -q
 python -m experiments.run_reproduction --seeds 30 --out results/my_reproduction.csv
 python -m experiments.run_main --size M --seeds 10 --out results/my_main_M.csv
+python -m notebooks.make_report_figures
 ```
+
+`make_report_figures` redraws the two result figures of the report from the saved CSVs (`notebooks/tables/paired_ours_vs_reco_greedy.csv` and `results/main_M_solvable.csv`) into `notebooks/figures/`; pass `--out-dir` to write them elsewhere. The figures call the method VARS, which is `Ours` in the CSVs.
 
 Scripts never overwrite an existing results file: always pass a new `--out`.
 

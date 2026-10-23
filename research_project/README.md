@@ -23,7 +23,10 @@ pip install -r requirements.txt
 python -m pytest -q                                   # ~10 s
 python -m experiments.run_reproduction --seeds 30     # ~30 s
 python -m experiments.run_main --size M --seeds 30    # minutes; --size L for the 20x20 map
+python -m notebooks.make_report_figures              # report figures into notebooks/figures/
 ```
+
+`notebooks/make_report_figures.py` draws the two result figures of the report: `return_diff_vs_rho.pdf` (paired return difference VARS minus RECO-greedy against rho, from `notebooks/tables/paired_ours_vs_reco_greedy.csv`) and `query_delivery_M.pdf` (query and delivery rates on Taxi M, driver data, |D| = 150, from `results/main_M_solvable.csv`). The method is `Ours` in the CSVs and VARS in the figures.
 
 ## Notes
 
