@@ -28,7 +28,7 @@ There will be three assignments for this course.
 
 We combine **RECO** (abstraction-guided policy recovery, Ponnambalam et al., ICAPS 2021) with the idea of **POR** (policy-guided state stitching, Xu et al., NeurIPS 2022). When an offline agent is off its data, it recovers towards the **best** known state (not just the nearest one), takes shortcuts between trajectories on the way using RECO's abstraction as a model, and asks a supervisor only when RECO would also ask. We also study what happens when the hand-built abstraction is **wrong**.
 
-**Research question** (to be reframed around the method, as suggested by the supervisor): *Does value-aware recovery improve on RECO without more supervisor queries, and under which conditions (data quality, data quantity, environment size, abstraction error)?*
+**Research question:** *Does value-aware recovery improve on RECO without more supervisor queries, and under which conditions (data quality, data quantity, environment size, abstraction error)?*
 
 ### Method in short
 
@@ -113,13 +113,13 @@ Done:
 - [x] Research question reframed around the method (hypothesis in the paper)
 - [x] DoorKey benchmark: environment, tests, smoke run
 - [x] Report draft: method section aligned with the code (12 October)
+- [x] Report: result figures (`make_report_figures.py`), DoorKey section, limitations (23 October)
 
 Next steps and possible future developments:
 - [ ] Correct the prototype numbers sent to the supervisor
 - [ ] Abstract execution rule: after a failed projected move, distrust that abstract move for the whole episode in every state (aims at the loss at ρ = 0.5 and at DoorKey with the wrong abstraction)
 - [x] Rerun Taxi M and L with the current 1e-6 tolerance and solvable layouts (30 / 10 seeds)
 - [x] Rejection-sample conditional doors and report all seeds without post-hoc layout exclusions
-- [ ] Report: add figures, rewrite `supplement.tex`, mention DoorKey and future work
 - [ ] Link Overleaf to this repository
 - [ ] Larger DoorKey run (bigger maps, more trajectories and seeds)
 - [ ] Taxi L with 30 seeds, noisy-expert data and more values of \|D\|
